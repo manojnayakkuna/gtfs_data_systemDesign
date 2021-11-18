@@ -1,0 +1,46 @@
+Input Parameters:
+1. BUS ROUTE     = "METRO Blue Line"                 = gtfs_routes.route_id -> gtfs_trips.route_id
+2. BUS STOP NAME = “Target Field Station Platform 1" = gtfs_stops.stop_name
+3. DIRECTION     =  "south"                          = gtfs_trips.direction/gtfs_trips.direction_id
+
+Derived Input:
+4. CURRENT-DATE = "11172021"
+5. CURRENT-TIME = "08:30AM"
+
+> Step 1: Retrieve all route_id's based on route_short_name or route_long_name
+select gtfs_routes.route_id from gtfs_routes 
+ where gtfs_routes.route_short_name = "METRO Blue Line" 
+    or gtfs_routes.route_long_name  = "METRO Blue Line" 
+
+> Step 2: Retrieve all service_id and trip_id using the route_id retrievd from step 1
+select gtfs_trips.service_id 
+ where gtfs_trips.route_id  = gtfs_routes.route_id
+   and gtfs_trips.direction = "south"
+
+> Step 3: Retrieve all valid service_ids based on start_date and end_date from gtfs_calendar
+select gtfs_calendar.service_id from gtfs_calendar 
+ where CURRENT-DATE >= gtfs_calendar.start_date 
+   and CURRENT-DATE < gtfs_calendar.end_date
+   and gtfs_calendar.service_id not in (select gtfs_calendar_dates.service_id from gtfs_calendar_dates where gtfs_calendar_dates.date == current_date)
+										 
+> Step 4: Retrieve all trip_id's from results-2, for all the valid service_id's are retrieved from results-3
+select gtfs_trips.trip_id 
+ where gtfs_trips.service_id = (results set 3)
+ 
+> Step 5: Retrieve all stop_id's using input BUS STOP NAME “Target Field Station Platform 1"
+select gtfs_stops.stop_id from gfts_stops 
+ where gfts_stops.stop_name = “Target Field Station Platform 1"
+ 
+> Step 6: Retrieve all trip_id and stop_id from gtfs_stop_times using the trip_id (result-4) and stop_ids (result-5) and arrival time >= "08:30AM" (CURRENT TIME)
+select gtfs_stop_times.trip_id, gtfs_stop_times.stop_id, gtfs_stop_times.arrival_time
+ where gtfs_stop_times.trip_id in (results-4)
+   and gtfs_stop_times.stop_id in (results-5)
+   
+> Step 7: Order the results from step-6 in ascendening from a calcaluated values between ARRIVAL-TIME MINUS CURRENT-TIME and return first record
+select (gtfs_stop_times.arrival_time - CURRENT-TIME) AS TIME order by TIME ascending fetch first 1 rows only
+
+ 
+ 
+ 
+ 
+ 
